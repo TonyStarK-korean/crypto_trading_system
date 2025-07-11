@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  crypto-trading-web:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    container_name: crypto-trading-dashboard
+    
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - crypto-trading-web
+    restart: unless-stopped
+    container_name: crypto-trading-nginx

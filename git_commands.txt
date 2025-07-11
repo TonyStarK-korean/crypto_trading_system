@@ -1,0 +1,25 @@
+Windows에서 실행할 Git 명령어:
+
+1. 명령 프롬프트를 관리자 권한으로 실행
+2. 다음 명령어들을 순서대로 실행:
+
+cd /d "C:\projects\crypto_trading_system"
+git init
+git add .
+git commit -m "Initial commit: Complete crypto trading system with web dashboard"
+git remote add origin https://github.com/TonyStarK-korean/crypto_trading_system.git
+git branch -M main
+git push -u origin main
+
+성공하면 다음 단계로 서버 배포 진행:
+
+SSH 접속:
+ssh ubuntu@34.47.77.230
+
+서버에서 실행:
+curl -sSL https://raw.githubusercontent.com/TonyStarK-korean/crypto_trading_system/main/web_dashboard/install_server.sh | bash
+
+또는:
+wget https://raw.githubusercontent.com/TonyStarK-korean/crypto_trading_system/main/web_dashboard/install_server.sh
+chmod +x install_server.sh
+./install_server.sh

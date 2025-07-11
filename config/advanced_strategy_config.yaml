@@ -1,0 +1,312 @@
+# 고급 통합 전략 설정 파일
+
+# 전략 기본 설정
+strategy:
+  name: "advanced_integrated_strategy"
+  version: "1.0.0"
+  description: "적응형, 다중시간프레임, ML, 리스크패리티 통합 전략"
+  
+# A. 적응형 전략 설정
+adaptive:
+  enabled: true
+  adaptive_window: 50          # 적응형 계산 윈도우
+  volatility_lookback: 20      # 변동성 계산 기간
+  base_volatility: 0.03        # 기준 변동성
+  
+  # 시장 상태별 임계값 배수
+  regime_multipliers:
+    trending: 1.2
+    ranging: 0.8
+    volatile: 1.5
+    trending_volatile: 1.8
+    ranging_volatile: 1.0
+    neutral: 1.0
+
+# B. 다중 시간프레임 설정
+multi_timeframe:
+  enabled: true
+  timeframes: ["1h", "4h", "1d"]
+  
+  # 시간프레임별 가중치
+  weights:
+    "1h": 0.5
+    "4h": 0.3
+    "1d": 0.2
+  
+  # 시간프레임별 지표 설정
+  indicators:
+    "1h":
+      ma_periods: [10, 20, 50, 100, 200]
+      rsi_period: 14
+      macd: [12, 26, 9]
+      bollinger: [20, 2.0]
+      stochastic: [14, 3]
+      atr_period: 14
+    "4h":
+      ma_periods: [10, 20, 50, 100]
+      rsi_period: 14
+      macd: [12, 26, 9]
+      bollinger: [20, 2.0]
+      stochastic: [14, 3]
+      atr_period: 14
+    "1d":
+      ma_periods: [10, 20, 50, 100, 200]
+      rsi_period: 14
+      macd: [12, 26, 9]
+      bollinger: [20, 2.0]
+      stochastic: [14, 3]
+      atr_period: 14
+
+# C. 머신러닝 설정
+machine_learning:
+  enabled: true
+  model_type: "ensemble"       # ensemble, classification, regression
+  prediction_horizon: 1        # 예측 시점 (1시간 후)
+  feature_window: 50           # 특성 계산 윈도우
+  min_data_points: 200         # 최소 데이터 포인트
+  retrain_frequency: 100       # 재훈련 주기
+  
+  # 모델별 설정
+  models:
+    random_forest:
+      enabled: true
+      n_estimators: 100
+      max_depth: 10
+      random_state: 42
+    
+    gradient_boosting:
+      enabled: true
+      n_estimators: 100
+      max_depth: 6
+      learning_rate: 0.1
+    
+    logistic_regression:
+      enabled: true
+      max_iter: 1000
+      
+    svm:
+      enabled: false  # 느린 훈련으로 기본 비활성화
+      probability: true
+  
+  # 특성 설정
+  features:
+    price_features: true         # 가격 기반 특성
+    technical_indicators: true   # 기술적 지표
+    volume_features: true        # 거래량 특성
+    time_features: true         # 시간 기반 특성
+    interaction_features: true   # 상호작용 특성
+
+# E. 리스크 패리티 설정
+risk_parity:
+  enabled: true
+  
+  # 포트폴리오 리스크 설정
+  max_portfolio_risk: 0.02     # 포트폴리오 최대 리스크 (2%)
+  max_position_size: 0.1       # 단일 포지션 최대 크기 (10%)
+  max_correlation: 0.7         # 최대 상관관계
+  
+  # 변동성 설정
+  volatility_lookback: 20      # 변동성 계산 기간
+  volatility_target: 0.15      # 목표 변동성
+  
+  # VaR 설정
+  var_confidence: 0.05         # VaR 신뢰도 (5%)
+  
+  # 포지션 사이징
+  risk_per_trade: 0.02         # 거래당 리스크 (2%)
+  kelly_fraction_limit: 0.25   # 켈리 기준 최대 비율
+
+# 진입 조건 설정
+entry_conditions:
+  # 다중 시간프레임 신호 임계값
+  mtf_signal_threshold: 0.7    # 0.7 이상에서 진입
+  
+  # 머신러닝 신호 임계값
+  ml_signal_threshold: 0.7     # 0.7 이상에서 진입
+  
+  # 통합 신호 가중치
+  signal_weights:
+    multi_timeframe: 0.6       # 다중 시간프레임 신호 가중치
+    machine_learning: 0.4      # 머신러닝 신호 가중치
+  
+  # 최소 신호 강도
+  min_signal_strength: 0.5
+  
+  # 상관관계 체크
+  check_correlation: true
+  
+  # 최소 데이터 요구사항
+  min_data_required: 100
+
+# 청산 조건 설정
+exit_conditions:
+  # 동적 손익 레벨
+  dynamic_levels: true
+  
+  # 기본 손익비
+  base_stop_loss: 0.02         # 2% 손절
+  base_take_profit: 0.05       # 5% 익절
+  
+  # ATR 기반 조정
+  atr_multiplier_stop: 2.0     # ATR의 2배로 손절 조정
+  atr_multiplier_profit: 3.0   # ATR의 3배로 익절 조정
+  atr_multiplier_trailing: 1.5 # ATR의 1.5배로 트레일링 스탑
+  
+  # 시장 상태별 최대 보유 시간 (시간)
+  max_hold_time:
+    trending: 24
+    ranging: 8
+    volatile: 4
+    neutral: 12
+  
+  # 시장 상태 변화 기반 청산
+  regime_change_exit: true
+  regime_change_ml_threshold: 0.3  # ML 신호 0.3 이하 시 청산
+
+# 백테스트 설정
+backtest:
+  initial_balance: 10000.0     # 초기 자본
+  commission: 0.001            # 수수료 (0.1%)
+  slippage: 0.0005            # 슬리피지 (0.05%)
+  
+  # 성과 분석 설정
+  benchmark: "BTC/USDT"        # 벤치마크
+  risk_free_rate: 0.0          # 무위험 수익률
+  
+  # 보고서 설정
+  generate_reports: true
+  save_equity_curve: true
+  save_trade_log: true
+
+# 데이터 설정
+data:
+  # 필요한 최소 캔들 수
+  min_candles: 200
+  
+  # 데이터 검증
+  validate_data: true
+  remove_outliers: true
+  outlier_threshold: 5         # 표준편차의 5배 이상을 이상치로 간주
+  
+  # 결측값 처리
+  fill_missing: true
+  fill_method: "ffill"         # forward fill
+
+# 로깅 설정
+logging:
+  level: "INFO"                # DEBUG, INFO, WARNING, ERROR
+  save_logs: true
+  log_trades: true
+  log_signals: true
+  log_performance: true
+
+# 알림 설정
+notifications:
+  enabled: false
+  
+  # 알림 조건
+  entry_signal: false
+  exit_signal: false
+  performance_milestone: false
+  error_alert: true
+  
+  # 알림 방법
+  methods: ["console"]         # console, email, telegram, discord
+
+# 고급 설정
+advanced:
+  # 멀티프로세싱
+  use_multiprocessing: false
+  max_workers: 4
+  
+  # 메모리 관리
+  max_memory_usage: 2048       # MB
+  clear_cache_frequency: 1000  # 캔들 수
+  
+  # 성능 최적화
+  optimize_performance: true
+  cache_indicators: true
+  parallel_timeframes: false
+  
+  # 디버깅
+  debug_mode: false
+  save_debug_info: false
+  profile_performance: false
+
+# 고도화된 시장국면 대응 기능
+dynamic_market_response:
+  enabled: true
+  
+  # 레버리지 동적 조정
+  dynamic_leverage:
+    enabled: true
+    max_leverage: 2.0              # 최대 레버리지
+    min_leverage: 0.5              # 최소 레버리지
+  
+  # 세분화된 포지션 사이징
+  dynamic_position_sizing:
+    enabled: true
+    base_risk_per_trade: 0.02      # 기본 거래당 리스크
+    max_risk_multiplier: 2.0       # 최대 리스크 배수
+    min_risk_multiplier: 0.3       # 최소 리스크 배수
+  
+  # 동적 임계값 조정
+  dynamic_thresholds:
+    enabled: true
+    base_entry_threshold: 0.7      # 기본 진입 임계값
+    confidence_adjustment_range: 0.2  # 신뢰도 조정 범위
+  
+  # 시장 상태별 세부 설정
+  market_regimes:
+    trending:
+      leverage_multiplier: 1.5     # 추세장: 1.5배 레버리지
+      risk_multiplier: 1.3         # 추세장: 리스크 30% 증가
+      entry_threshold: 0.6         # 추세장: 낮은 진입 임계값
+      confidence_boost: 0.1        # 추세장: 신뢰도 10% 부스트
+      max_hold_hours: 24           # 추세장: 24시간 보유
+      trailing_multiplier: 1.2     # 추세장: 트레일링 스탑 완화
+    
+    ranging:
+      leverage_multiplier: 0.8     # 횡보장: 0.8배 레버리지
+      risk_multiplier: 0.7         # 횡보장: 리스크 30% 감소
+      entry_threshold: 0.8         # 횡보장: 높은 진입 임계값
+      confidence_boost: -0.1       # 횡보장: 신뢰도 10% 감소
+      max_hold_hours: 8            # 횡보장: 8시간 보유
+      trailing_multiplier: 0.8     # 횡보장: 트레일링 스탑 강화
+    
+    volatile:
+      leverage_multiplier: 0.6     # 변동성장: 0.6배 레버리지
+      risk_multiplier: 0.5         # 변동성장: 리스크 50% 감소
+      entry_threshold: 0.75        # 변동성장: 중간 진입 임계값
+      confidence_boost: -0.05      # 변동성장: 신뢰도 5% 감소
+      max_hold_hours: 4            # 변동성장: 4시간 보유
+      trailing_multiplier: 0.6     # 변동성장: 트레일링 스탑 매우 강화
+    
+    trending_volatile:
+      leverage_multiplier: 1.2     # 추세+변동성: 1.2배 레버리지
+      risk_multiplier: 1.0         # 추세+변동성: 기본 리스크
+      entry_threshold: 0.65        # 추세+변동성: 중저 진입 임계값
+      confidence_boost: 0.05       # 추세+변동성: 신뢰도 5% 부스트
+      max_hold_hours: 12           # 추세+변동성: 12시간 보유
+      trailing_multiplier: 1.0     # 추세+변동성: 기본 트레일링 스탑
+    
+    ranging_volatile:
+      leverage_multiplier: 0.7     # 횡보+변동성: 0.7배 레버리지
+      risk_multiplier: 0.6         # 횡보+변동성: 리스크 40% 감소
+      entry_threshold: 0.85        # 횡보+변동성: 매우 높은 진입 임계값
+      confidence_boost: -0.15      # 횡보+변동성: 신뢰도 15% 감소
+      max_hold_hours: 6            # 횡보+변동성: 6시간 보유
+      trailing_multiplier: 0.7     # 횡보+변동성: 트레일링 스탑 강화
+    
+    neutral:
+      leverage_multiplier: 1.0     # 중립: 기본 레버리지
+      risk_multiplier: 1.0         # 중립: 기본 리스크
+      entry_threshold: 0.7         # 중립: 기본 진입 임계값
+      confidence_boost: 0.0        # 중립: 신뢰도 변화 없음
+      max_hold_hours: 12           # 중립: 12시간 보유
+      trailing_multiplier: 1.0     # 중립: 기본 트레일링 스탑
+
+# 사용자 정의 매수 타점 (나중에 추가 예정)
+custom_entry_signals:
+  enabled: false
+  # 여기에 사용자가 제공할 추가 매수 조건들이 들어갈 예정

@@ -1,0 +1,93 @@
+# Crypto Trading System Configuration
+
+# Exchange Settings
+exchange:
+  name: "binance"  # binance, bybit, okx, etc.
+  api_key: "your_api_key_here"
+  secret: "your_secret_key_here"
+  sandbox: true  # true for testing, false for live trading
+  testnet: true  # for testnet trading
+
+# Data Settings
+data:
+  symbols: ["BTC/USDT", "ETH/USDT", "BNB/USDT"]
+  timeframes: ["1m", "5m", "15m", "1h", "4h", "1d"]
+  limit: 1000  # number of candles to fetch
+  update_interval: 60  # seconds
+
+# Trading Settings
+trading:
+  initial_balance: 10000.0
+  commission: 0.001  # 0.1% commission
+  max_positions: 5
+  risk_per_trade: 0.02  # 2% risk per trade
+  max_daily_loss: 0.05  # 5% max daily loss
+
+# Strategy Settings
+strategy:
+  name: "ml_enhanced_ma_cross"
+  params:
+    short_period: 20
+    long_period: 50
+    rsi_period: 14
+    rsi_oversold: 30
+    rsi_overbought: 70
+    ml_threshold: 0.6
+    use_ml: true
+
+# Risk Management
+risk:
+  stop_loss_atr_multiplier: 2.0
+  take_profit_atr_multiplier: 3.0
+  trailing_stop: true
+  trailing_stop_atr_multiplier: 1.5
+  max_leverage: 10.0
+  dynamic_leverage: false
+
+# ML Settings
+ml:
+  model_type: "ensemble"  # ensemble, random_forest, gradient_boosting, linear
+  retrain_interval: 24  # hours
+  min_training_data: 1000
+  feature_importance_threshold: 0.01
+
+# Backtest Settings
+backtest:
+  start_date: "2023-01-01"
+  end_date: "2023-12-31"
+  initial_balance: 10000.0
+  commission: 0.001
+  slippage: 0.0005
+
+# Logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  file: "logs/trading.log"
+  max_size: "10MB"
+  backup_count: 5
+
+# Database
+database:
+  type: "sqlite"  # sqlite, postgresql, mysql
+  path: "data/trading.db"
+  backup_interval: 24  # hours
+
+# Web Dashboard (Future)
+web:
+  host: "localhost"
+  port: 8000
+  debug: false
+  secret_key: "your_secret_key_here"
+
+# Notifications
+notifications:
+  email:
+    enabled: false
+    smtp_server: "smtp.gmail.com"
+    smtp_port: 587
+    username: "your_email@gmail.com"
+    password: "your_app_password"
+  telegram:
+    enabled: false
+    bot_token: "your_bot_token"
+    chat_id: "your_chat_id" 

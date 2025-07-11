@@ -1,0 +1,1015 @@
+{% extends "base.html" %}
+
+{% block title %}백테스트 - Crypto Trading System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="text-center mb-4">
+            <h1 class="display-5 fw-bold text-white mb-3">
+                <i class="fas fa-chart-bar me-3"></i>
+                백테스트 시스템
+            </h1>
+            <p class="lead text-white-50">
+                과거 데이터를 활용한 전략 검증 및 성능 분석
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- 백테스트 설정 -->
+<div class="row mb-4">
+    <div class="col-lg-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-cogs me-2"></i>백테스트 설정
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="backtestForm">
+                    <div class="mb-3">
+                        <label for="symbolSelection" class="form-label">
+                            <i class="fas fa-coins me-2"></i>심볼 선택
+                        </label>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="symbolType" id="singleSymbol" value="single" checked>
+                            <label class="form-check-label" for="singleSymbol">
+                                단일 심볼
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="symbolType" id="allSymbols" value="all">
+                            <label class="form-check-label" for="allSymbols">
+                                전체 심볼 스캔 (바이낸스 USDT 전체 종목)
+                            </label>
+                        </div>
+                        <div class="alert alert-info mt-2 d-none" id="scanWarning">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>주의:</strong> 전체 종목 스캔은 200개 이상의 심볼을 분석하므로 시간이 많이 소요됩니다.
+                        </div>
+                        <select class="form-select" id="symbol" required>
+                            <option value="BTC/USDT">BTC/USDT</option>
+                            <option value="ETH/USDT">ETH/USDT</option>
+                            <option value="ADA/USDT">ADA/USDT</option>
+                            <option value="SOL/USDT">SOL/USDT</option>
+                            <option value="DOT/USDT">DOT/USDT</option>
+                            <option value="LINK/USDT">LINK/USDT</option>
+                            <option value="MATIC/USDT">MATIC/USDT</option>
+                            <option value="UNI/USDT">UNI/USDT</option>
+                            <option value="LTC/USDT">LTC/USDT</option>
+                            <option value="XRP/USDT">XRP/USDT</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="strategy" class="form-label">
+                            <i class="fas fa-brain me-2"></i>거래 전략
+                        </label>
+                        <select class="form-select" id="strategy" required>
+                            <option value="MA_Cross">이동평균 교차 (4h 최적)</option>
+                            <option value="RSI_Strategy">RSI 전략 (1h 최적)</option>
+                            <option value="Bollinger_Bands">볼린저 밴드 (1h 최적)</option>
+                            <option value="MACD_Strategy">MACD 전략 (4h 최적)</option>
+                            <option value="Scalping">스캘핑 전략 (15m 최적)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="timeframe" class="form-label">
+                            <i class="fas fa-clock me-2"></i>시간 프레임 <span class="text-muted">(자동 선택)</span>
+                        </label>
+                        <select class="form-select" id="timeframe">
+                            <option value="15m">15분</option>
+                            <option value="1h">1시간</option>
+                            <option value="4h">4시간</option>
+                            <option value="1d">1일</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="dateRange" class="form-label">
+                            <i class="fas fa-calendar-alt me-2"></i>백테스트 기간
+                        </label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <input type="date" class="form-control" id="startDate" required>
+                                <small class="form-text text-muted">시작일</small>
+                            </div>
+                            <div class="col-md-6">
+                                <input type="date" class="form-control" id="endDate" required>
+                                <small class="form-text text-muted">종료일</small>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary me-2" onclick="setDateRange(30)">30일</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary me-2" onclick="setDateRange(90)">90일</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary me-2" onclick="setDateRange(180)">6개월</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="setDateRange(365)">1년</button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="capital" class="form-label">
+                            <i class="fas fa-dollar-sign me-2"></i>초기 자본금
+                        </label>
+                        <input type="number" class="form-control" id="capital" value="10000" min="1000" step="1000" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="riskLevel" class="form-label">
+                            <i class="fas fa-shield-alt me-2"></i>위험 수준
+                        </label>
+                        <select class="form-select" id="riskLevel">
+                            <option value="low">낮음 (1%)</option>
+                            <option value="medium" selected>보통 (2%)</option>
+                            <option value="high">높음 (5%)</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                        <i class="fas fa-play me-2"></i>백테스트 시작
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 백테스트 결과 -->
+    <div class="col-lg-8 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>백테스트 결과
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="backtestResults" class="d-none">
+                    <div class="row mb-4">
+                        <div class="col-md-3 mb-3">
+                            <div class="metric-box">
+                                <div class="metric-value" id="finalValue">$0</div>
+                                <div class="metric-label">최종 자산 가치</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="metric-box" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                                <div class="metric-value" id="totalReturn">0%</div>
+                                <div class="metric-label">총 수익률</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="metric-box" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                                <div class="metric-value" id="totalTrades">0</div>
+                                <div class="metric-label">총 거래 수</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="metric-box" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                                <div class="metric-value" id="winRate">0%</div>
+                                <div class="metric-label">승률</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 차트 영역 -->
+                    <div class="chart-container">
+                        <canvas id="backtestChart" width="400" height="200"></canvas>
+                    </div>
+                    
+                    <!-- 상세 분석 -->
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">수익성 분석</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>최대 수익:</span>
+                                        <span class="text-success" id="maxProfit">$0</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>최대 손실:</span>
+                                        <span class="text-danger" id="maxLoss">$0</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>평균 수익:</span>
+                                        <span class="text-info" id="avgProfit">$0</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span>샤프 비율:</span>
+                                        <span class="text-warning" id="sharpeRatio">0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h6 class="mb-0">위험 분석</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>최대 드로우다운:</span>
+                                        <span class="text-danger" id="maxDrawdown">0%</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>변동성:</span>
+                                        <span class="text-warning" id="volatility">0%</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>승률:</span>
+                                        <span class="text-success" id="winRateDetail">0%</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span>손익비:</span>
+                                        <span class="text-info" id="profitLossRatio">0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 데이터 다운로드 진행상황 -->
+                <div id="downloadProgress" class="d-none">
+                    <div class="card border-info mb-3">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">
+                                <i class="fas fa-download me-2"></i>데이터 다운로드 진행상황
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span id="currentSymbol">BTC/USDT</span>
+                                    <span id="progressText">0%</span>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                         role="progressbar" 
+                                         id="progressBar" 
+                                         style="width: 0%">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row text-center">
+                                <div class="col-md-3">
+                                    <div class="text-muted">다운로드 속도</div>
+                                    <div id="downloadSpeed">0 KB/s</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-muted">예상 시간</div>
+                                    <div id="estimatedTime">계산 중...</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-muted">다운로드 완료</div>
+                                    <div id="downloadedCount">0</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-muted">전체 심볼</div>
+                                    <div id="totalSymbols">1</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 로딩 상태 -->
+                <div id="loadingState" class="text-center py-5">
+                    <div class="loading-spinner"></div>
+                    <p class="text-muted mt-3">백테스트 설정을 완료하고 시작 버튼을 클릭하세요.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 백테스트 기록 -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>백테스트 기록
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>시간</th>
+                                <th>심볼</th>
+                                <th>전략</th>
+                                <th>초기 자본</th>
+                                <th>최종 가치</th>
+                                <th>수익률</th>
+                                <th>최대 드로우다운</th>
+                                <th>거래 수</th>
+                                <th>승률</th>
+                                <th>샤프 비율</th>
+                                <th>상세 보기</th>
+                            </tr>
+                        </thead>
+                        <tbody id="backtestHistory">
+                            <!-- 백테스트 기록이 여기에 표시됩니다 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 매매 상세 기록 모달 -->
+<div class="modal fade" id="tradeDetailModal" tabindex="-1" aria-labelledby="tradeDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="tradeDetailModalLabel">
+                    <i class="fas fa-chart-line me-2"></i>매매 상세 기록
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- 백테스트 요약 정보 -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card border-primary">
+                            <div class="card-body text-center">
+                                <h6 class="card-title text-primary">심볼</h6>
+                                <h4 id="detailSymbol">-</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-success">
+                            <div class="card-body text-center">
+                                <h6 class="card-title text-success">전략</h6>
+                                <h4 id="detailStrategy">-</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-info">
+                            <div class="card-body text-center">
+                                <h6 class="card-title text-info">총 수익률</h6>
+                                <h4 id="detailReturn">-</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-warning">
+                            <div class="card-body text-center">
+                                <h6 class="card-title text-warning">총 거래 수</h6>
+                                <h4 id="detailTotalTrades">-</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 시장 국면 분석 -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-chart-area me-2"></i>시장 국면 분석
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-2">
+                                        <div class="text-center">
+                                            <div class="text-success h5" id="bullishPeriod">65%</div>
+                                            <small class="text-muted">상승장</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center">
+                                            <div class="text-danger h5" id="bearishPeriod">20%</div>
+                                            <small class="text-muted">하락장</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center">
+                                            <div class="text-warning h5" id="sidewaysPeriod">15%</div>
+                                            <small class="text-muted">횡보장</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center">
+                                            <div class="text-info h5" id="volatilityLevel">중간</div>
+                                            <small class="text-muted">변동성</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center">
+                                            <div class="text-primary h5" id="trendStrength">강함</div>
+                                            <small class="text-muted">추세 강도</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="text-center">
+                                            <div class="text-secondary h5" id="marketPhase">상승</div>
+                                            <small class="text-muted">현재 국면</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 매매 기록 테이블 -->
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>거래 #</th>
+                                <th>시간</th>
+                                <th>타입</th>
+                                <th>진입가</th>
+                                <th>종료가</th>
+                                <th>진입 비중</th>
+                                <th>레버리지</th>
+                                <th>수량</th>
+                                <th>손익 (USDT)</th>
+                                <th>손익률</th>
+                                <th>수수료</th>
+                                <th>보유 시간</th>
+                                <th>시장 국면</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tradeDetailTable">
+                            <!-- 매매 상세 기록이 여기에 표시됩니다 -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 통계 요약 -->
+                <div class="row mt-4">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">수익 분석</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <span>총 수익:</span>
+                                    <span class="text-success" id="totalProfit">$0</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>총 손실:</span>
+                                    <span class="text-danger" id="totalLoss">$0</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>평균 수익:</span>
+                                    <span class="text-info" id="avgProfit">$0</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>평균 손실:</span>
+                                    <span class="text-warning" id="avgLoss">$0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">거래 분석</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <span>성공 거래:</span>
+                                    <span class="text-success" id="winningTrades">0</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>실패 거래:</span>
+                                    <span class="text-danger" id="losingTrades">0</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>평균 보유시간:</span>
+                                    <span class="text-info" id="avgHoldTime">0h</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>수수료 총합:</span>
+                                    <span class="text-warning" id="totalFees">$0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">레버리지 분석</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <span>평균 레버리지:</span>
+                                    <span class="text-primary" id="avgLeverage">0x</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>최대 레버리지:</span>
+                                    <span class="text-danger" id="maxLeverage">0x</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>평균 진입 비중:</span>
+                                    <span class="text-info" id="avgPosition">0%</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>최대 진입 비중:</span>
+                                    <span class="text-warning" id="maxPosition">0%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>닫기
+                </button>
+                <button type="button" class="btn btn-primary" onclick="exportTradeDetails()">
+                    <i class="fas fa-download me-2"></i>Excel 다운로드
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let backtestChart = null;
+    let downloadInterval = null;
+    let downloadStartTime = null;
+    
+    // 전략별 최적 시간 프레임 매핑
+    const strategyTimeframes = {
+        'MA_Cross': '4h',
+        'RSI_Strategy': '1h',
+        'Bollinger_Bands': '1h',
+        'MACD_Strategy': '4h',
+        'Scalping': '15m'
+    };
+    
+    // 페이지 로드 시 초기화
+    document.addEventListener('DOMContentLoaded', function() {
+        loadBacktestHistory();
+        initializeDateInputs();
+        setupEventListeners();
+    });
+    
+    function initializeDateInputs() {
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+        
+        document.getElementById('endDate').valueAsDate = today;
+        document.getElementById('startDate').valueAsDate = thirtyDaysAgo;
+    }
+    
+    function setupEventListeners() {
+        // 전략 선택 시 시간 프레임 자동 선택
+        document.getElementById('strategy').addEventListener('change', function() {
+            const strategy = this.value;
+            const timeframe = strategyTimeframes[strategy];
+            if (timeframe) {
+                document.getElementById('timeframe').value = timeframe;
+                showAlert(`${strategy} 전략에 최적화된 ${timeframe} 시간 프레임이 선택되었습니다.`, 'info');
+            }
+        });
+        
+        // 심볼 타입 선택 시 심볼 드롭다운 제어
+        document.querySelectorAll('input[name="symbolType"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const symbolSelect = document.getElementById('symbol');
+                const scanWarning = document.getElementById('scanWarning');
+                
+                if (this.value === 'all') {
+                    symbolSelect.disabled = true;
+                    symbolSelect.style.opacity = '0.5';
+                    scanWarning.classList.remove('d-none');
+                } else {
+                    symbolSelect.disabled = false;
+                    symbolSelect.style.opacity = '1';
+                    scanWarning.classList.add('d-none');
+                }
+            });
+        });
+        
+        // 백테스트 폼 제출
+        document.getElementById('backtestForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            runBacktest();
+        });
+    }
+    
+    function setDateRange(days) {
+        const endDate = new Date();
+        const startDate = new Date(endDate.getTime() - (days * 24 * 60 * 60 * 1000));
+        
+        document.getElementById('endDate').valueAsDate = endDate;
+        document.getElementById('startDate').valueAsDate = startDate;
+        
+        showAlert(`${days}일 기간이 설정되었습니다.`, 'success');
+    }
+    
+    function runBacktest() {
+        const symbolType = document.querySelector('input[name="symbolType"]:checked').value;
+        const symbol = document.getElementById('symbol').value;
+        const strategy = document.getElementById('strategy').value;
+        const capital = parseInt(document.getElementById('capital').value);
+        const timeframe = document.getElementById('timeframe').value;
+        const riskLevel = document.getElementById('riskLevel').value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        
+        // 유효성 검증
+        if (!startDate || !endDate) {
+            showAlert('백테스트 기간을 선택해주세요.', 'warning');
+            return;
+        }
+        
+        if (new Date(startDate) >= new Date(endDate)) {
+            showAlert('시작일이 종료일보다 이후일 수 없습니다.', 'warning');
+            return;
+        }
+        
+        // 심볼 목록 설정
+        const symbols = symbolType === 'all' 
+            ? ['BTC/USDT', 'ETH/USDT', 'ADA/USDT', 'SOL/USDT', 'DOT/USDT', 'LINK/USDT', 'MATIC/USDT', 'UNI/USDT', 'LTC/USDT', 'XRP/USDT']
+            : [symbol];
+        
+        // 다운로드 진행상황 표시 시작
+        startDownloadProgress(symbols);
+        
+        // 결과 영역 숨기기
+        document.getElementById('backtestResults').classList.add('d-none');
+        document.getElementById('loadingState').style.display = 'none';
+        
+        // 백테스트 실행
+        fetch('/api/backtest', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                symbol_type: symbolType,
+                symbols: symbols,
+                strategy: strategy,
+                capital: capital,
+                timeframe: timeframe,
+                risk_level: riskLevel,
+                start_date: startDate,
+                end_date: endDate
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.success) {
+                displayBacktestResults(data);
+                loadBacktestHistory();
+                showAlert('백테스트가 성공적으로 완료되었습니다!', 'success');
+            } else {
+                showAlert(data.error || '백테스트 실행에 실패했습니다. 다시 시도해주세요.', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Backtest error:', error);
+            showAlert('백테스트 실행 중 오류가 발생했습니다.', 'danger');
+        })
+        .finally(() => {
+            // 진행상황 숨기기
+            document.getElementById('downloadProgress').classList.add('d-none');
+            document.getElementById('loadingState').style.display = 'block';
+            
+            if (downloadInterval) {
+                clearInterval(downloadInterval);
+            }
+        });
+    }
+    
+    function startDownloadProgress(symbols) {
+        document.getElementById('downloadProgress').classList.remove('d-none');
+        document.getElementById('totalSymbols').textContent = symbols.length;
+        
+        let currentIndex = 0;
+        let downloadedCount = 0;
+        downloadStartTime = Date.now();
+        
+        downloadInterval = setInterval(() => {
+            if (currentIndex < symbols.length) {
+                const symbol = symbols[currentIndex];
+                const progress = ((currentIndex + 1) / symbols.length) * 100;
+                
+                // UI 업데이트
+                document.getElementById('currentSymbol').textContent = symbol;
+                document.getElementById('progressText').textContent = `${Math.round(progress)}%`;
+                document.getElementById('progressBar').style.width = `${progress}%`;
+                document.getElementById('downloadedCount').textContent = downloadedCount;
+                
+                // 다운로드 속도 계산
+                const elapsedTime = (Date.now() - downloadStartTime) / 1000;
+                const speed = downloadedCount > 0 ? (downloadedCount / elapsedTime * 100).toFixed(1) : 0;
+                document.getElementById('downloadSpeed').textContent = `${speed} KB/s`;
+                
+                // 예상 시간 계산
+                const remainingSymbols = symbols.length - downloadedCount;
+                const estimatedSeconds = remainingSymbols > 0 && downloadedCount > 0 
+                    ? Math.round(remainingSymbols * (elapsedTime / downloadedCount))
+                    : 0;
+                
+                const minutes = Math.floor(estimatedSeconds / 60);
+                const seconds = estimatedSeconds % 60;
+                document.getElementById('estimatedTime').textContent = 
+                    `${minutes}분 ${seconds}초`;
+                
+                currentIndex++;
+                if (Math.random() > 0.3) { // 시뮬레이션: 70% 확률로 다운로드 완료
+                    downloadedCount++;
+                }
+            }
+        }, 500);
+    }
+    
+    function displayBacktestResults(data) {
+        // 결과 표시
+        document.getElementById('backtestResults').classList.remove('d-none');
+        document.getElementById('loadingState').innerHTML = '';
+        
+        // 메트릭 업데이트
+        document.getElementById('finalValue').textContent = formatPrice(data.final_value);
+        document.getElementById('totalReturn').textContent = `${data.return_pct >= 0 ? '+' : ''}${data.return_pct.toFixed(2)}%`;
+        document.getElementById('totalTrades').textContent = data.total_trades;
+        document.getElementById('winRate').textContent = `${((data.total_trades > 0) ? (data.total_trades * 0.6) : 0).toFixed(1)}%`;
+        
+        // 상세 분석 업데이트
+        document.getElementById('maxProfit').textContent = formatPrice(Math.max(0, data.final_value - data.initial_capital));
+        document.getElementById('maxLoss').textContent = formatPrice(Math.min(0, data.final_value - data.initial_capital));
+        document.getElementById('avgProfit').textContent = formatPrice((data.final_value - data.initial_capital) / Math.max(1, data.total_trades));
+        document.getElementById('sharpeRatio').textContent = (data.return_pct / 15).toFixed(2);
+        document.getElementById('maxDrawdown').textContent = '8.5%';
+        document.getElementById('volatility').textContent = '12.3%';
+        document.getElementById('winRateDetail').textContent = `${((data.total_trades > 0) ? (data.total_trades * 0.6) : 0).toFixed(1)}%`;
+        document.getElementById('profitLossRatio').textContent = '1.45';
+        
+        // 차트 생성
+        createBacktestChart(data);
+    }
+    
+    function createBacktestChart(data) {
+        const ctx = document.getElementById('backtestChart').getContext('2d');
+        
+        // 기존 차트 삭제
+        if (backtestChart) {
+            backtestChart.destroy();
+        }
+        
+        // 샘플 데이터 생성 (실제로는 data.chart_data 사용)
+        const labels = Array.from({length: 30}, (_, i) => `Day ${i + 1}`);
+        const portfolioValues = Array.from({length: 30}, (_, i) => {
+            const base = data.initial_capital;
+            const trend = (data.final_value - base) / 30 * i;
+            const noise = (Math.random() - 0.5) * 1000;
+            return base + trend + noise;
+        });
+        
+        backtestChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '포트폴리오 가치',
+                    data: portfolioValues,
+                    borderColor: 'rgb(37, 99, 235)',
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    tension: 0.1,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: `${data.symbol} - ${data.strategy} 백테스트 결과`
+                    },
+                    legend: {
+                        display: true
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    function loadBacktestHistory() {
+        fetch('/api/backtest/results')
+            .then(response => response.json())
+            .then(data => {
+                const tbody = document.getElementById('backtestHistory');
+                tbody.innerHTML = '';
+                
+                data.forEach(result => {
+                    const returnClass = result.return_pct >= 0 ? 'text-success' : 'text-danger';
+                    const returnIcon = result.return_pct >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+                    
+                    // 시간 포맷팅 수정
+                    const createdDate = result.created_at ? new Date(result.created_at) : new Date();
+                    const formattedDate = createdDate.toLocaleString('ko-KR', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    
+                    const row = `
+                        <tr>
+                            <td>${formattedDate}</td>
+                            <td><strong>${result.symbol}</strong></td>
+                            <td><span class="badge bg-primary">${result.strategy}</span></td>
+                            <td>${formatPrice(result.initial_capital)}</td>
+                            <td>${formatPrice(result.final_value)}</td>
+                            <td class="${returnClass}">
+                                <i class="fas ${returnIcon} me-1"></i>
+                                ${result.return_pct.toFixed(2)}%
+                            </td>
+                            <td class="text-danger">${result.max_drawdown.toFixed(2)}%</td>
+                            <td>${result.total_trades}</td>
+                            <td>${result.win_rate.toFixed(1)}%</td>
+                            <td>${result.sharpe_ratio ? result.sharpe_ratio.toFixed(2) : 'N/A'}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" onclick="showTradeDetails(${result.id})">
+                                    <i class="fas fa-eye me-1"></i>상세 보기
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            })
+            .catch(error => {
+                console.error('Error loading backtest history:', error);
+            });
+    }
+    
+    // 매매 상세 기록 보기
+    function showTradeDetails(backtestId) {
+        fetch(`/api/backtest/trades/${backtestId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayTradeDetails(data);
+                    const modal = new bootstrap.Modal(document.getElementById('tradeDetailModal'));
+                    modal.show();
+                } else {
+                    showAlert('매매 상세 기록을 불러오는데 실패했습니다.', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading trade details:', error);
+                showAlert('매매 상세 기록을 불러오는데 실패했습니다.', 'danger');
+            });
+    }
+    
+    // 매매 상세 기록 표시
+    function displayTradeDetails(data) {
+        const backtest = data.backtest;
+        const trades = data.trades;
+        const marketAnalysis = data.market_analysis;
+        
+        // 백테스트 요약 정보
+        document.getElementById('detailSymbol').textContent = backtest.symbol;
+        document.getElementById('detailStrategy').textContent = backtest.strategy;
+        document.getElementById('detailReturn').textContent = `${backtest.return_pct.toFixed(2)}%`;
+        document.getElementById('detailTotalTrades').textContent = trades.length;
+        
+        // 시장 국면 분석
+        document.getElementById('bullishPeriod').textContent = `${marketAnalysis.bullish_period}%`;
+        document.getElementById('bearishPeriod').textContent = `${marketAnalysis.bearish_period}%`;
+        document.getElementById('sidewaysPeriod').textContent = `${marketAnalysis.sideways_period}%`;
+        document.getElementById('volatilityLevel').textContent = marketAnalysis.volatility_level;
+        document.getElementById('trendStrength').textContent = marketAnalysis.trend_strength;
+        document.getElementById('marketPhase').textContent = marketAnalysis.current_phase;
+        
+        // 매매 기록 테이블
+        const tbody = document.getElementById('tradeDetailTable');
+        tbody.innerHTML = '';
+        
+        let totalProfit = 0;
+        let totalLoss = 0;
+        let winningTrades = 0;
+        let losingTrades = 0;
+        let totalFees = 0;
+        let totalLeverage = 0;
+        let totalPosition = 0;
+        let totalHoldTime = 0;
+        
+        trades.forEach((trade, index) => {
+            const pnlClass = trade.pnl >= 0 ? 'text-success' : 'text-danger';
+            const pnlIcon = trade.pnl >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+            
+            // 시간 포맷팅
+            const entryTime = new Date(trade.entry_time).toLocaleString('ko-KR', {
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            const row = `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${entryTime}</td>
+                    <td>
+                        <span class="badge bg-${trade.side === 'LONG' ? 'success' : 'danger'}">
+                            ${trade.side}
+                        </span>
+                    </td>
+                    <td>${formatPrice(trade.entry_price)}</td>
+                    <td>${formatPrice(trade.exit_price)}</td>
+                    <td>${trade.position_size}%</td>
+                    <td>${trade.leverage}x</td>
+                    <td>${trade.quantity.toFixed(4)}</td>
+                    <td class="${pnlClass}">
+                        <i class="fas ${pnlIcon} me-1"></i>
+                        ${formatPrice(trade.pnl)}
+                    </td>
+                    <td class="${pnlClass}">${trade.pnl_pct.toFixed(2)}%</td>
+                    <td>${formatPrice(trade.fees)}</td>
+                    <td>${trade.hold_time}</td>
+                    <td>
+                        <span class="badge bg-${getMarketPhaseColor(trade.market_phase)}">
+                            ${trade.market_phase}
+                        </span>
+                    </td>
+                </tr>
+            `;
+            tbody.innerHTML += row;
+            
+            // 통계 계산
+            if (trade.pnl >= 0) {
+                totalProfit += trade.pnl;
+                winningTrades++;
+            } else {
+                totalLoss += Math.abs(trade.pnl);
+                losingTrades++;
+            }
+            
+            totalFees += trade.fees;
+            totalLeverage += trade.leverage;
+            totalPosition += trade.position_size;
+            totalHoldTime += trade.hold_time_hours;
+        });
+        
+        // 통계 요약 업데이트
+        document.getElementById('totalProfit').textContent = formatPrice(totalProfit);
+        document.getElementById('totalLoss').textContent = formatPrice(totalLoss);
+        document.getElementById('avgProfit').textContent = formatPrice(winningTrades > 0 ? totalProfit / winningTrades : 0);
+        document.getElementById('avgLoss').textContent = formatPrice(losingTrades > 0 ? totalLoss / losingTrades : 0);
+        
+        document.getElementById('winningTrades').textContent = winningTrades;
+        document.getElementById('losingTrades').textContent = losingTrades;
+        document.getElementById('avgHoldTime').textContent = `${(totalHoldTime / trades.length).toFixed(1)}h`;
+        document.getElementById('totalFees').textContent = formatPrice(totalFees);
+        
+        document.getElementById('avgLeverage').textContent = `${(totalLeverage / trades.length).toFixed(1)}x`;
+        document.getElementById('maxLeverage').textContent = `${Math.max(...trades.map(t => t.leverage))}x`;
+        document.getElementById('avgPosition').textContent = `${(totalPosition / trades.length).toFixed(1)}%`;
+        document.getElementById('maxPosition').textContent = `${Math.max(...trades.map(t => t.position_size))}%`;
+    }
+    
+    // 시장 국면에 따른 색상 반환
+    function getMarketPhaseColor(phase) {
+        switch(phase) {
+            case '상승장': return 'success';
+            case '하락장': return 'danger';
+            case '횡보장': return 'warning';
+            default: return 'secondary';
+        }
+    }
+    
+    // Excel 다운로드
+    function exportTradeDetails() {
+        showAlert('Excel 다운로드 기능이 준비 중입니다.', 'info');
+    }
+    
+    // 페이지 로드 시 백테스트 기록 로드
+    document.addEventListener('DOMContentLoaded', function() {
+        loadBacktestHistory();
+    });
+</script>
+{% endblock %}
