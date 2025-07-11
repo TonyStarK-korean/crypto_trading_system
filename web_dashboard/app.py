@@ -3,7 +3,8 @@ Crypto Trading System Web Dashboard
 암호화폐 거래 시스템 웹 대시보드
 """
 
-from flask import Flask, render_template, request, jsonify, redirect, url_for, session
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session, send_file, make_response
+import io
 import sqlite3
 import pandas as pd
 import plotly.graph_objs as go
@@ -13,6 +14,7 @@ import ccxt
 import threading
 import time
 from datetime import datetime, timedelta
+import pytz
 import os
 import sys
 
@@ -425,6 +427,100 @@ def get_trade_details(backtest_id):
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/backtest/trades/<int:backtest_id>/download')
+def download_trade_details(backtest_id):
+    """매매 상세 기록 Excel 다운로드"""
+    try:
+        conn = sqlite3.connect(web_system.db_path)
+        cursor = conn.cursor()
+        
+        # 백테스트 기본 정보 조회
+        cursor.execute('SELECT * FROM backtest_results WHERE id = ?', (backtest_id,))
+        backtest_result = cursor.fetchone()
+        
+        if not backtest_result:
+            return jsonify({'error': 'Backtest not found'}), 404
+        
+        # 매매 상세 기록 조회
+        cursor.execute('''
+            SELECT * FROM trade_details 
+            WHERE backtest_id = ? 
+            ORDER BY trade_number
+        ''', (backtest_id,))
+        trades = cursor.fetchall()
+        
+        # 매매 기록이 없으면 시뮬레이션 데이터 생성
+        if not trades:
+            sample_trades = generate_sample_trades(backtest_id, backtest_result)
+            save_sample_trades(sample_trades, backtest_id)
+            
+            # 다시 조회
+            cursor.execute('''
+                SELECT * FROM trade_details 
+                WHERE backtest_id = ? 
+                ORDER BY trade_number
+            ''', (backtest_id,))
+            trades = cursor.fetchall()
+        
+        conn.close()
+        
+        # DataFrame으로 변환
+        if trades:
+            df = pd.DataFrame(trades, columns=[
+                'ID', 'Backtest_ID', 'Trade_Number', 'Entry_Time', 'Exit_Time', 
+                'Side', 'Entry_Price', 'Exit_Price', 'Position_Size', 'Leverage', 
+                'Quantity', 'PnL', 'PnL_Pct', 'Fees', 'Hold_Time_Hours', 'Market_Phase'
+            ])
+            
+            # 필요한 컬럼만 선택
+            df = df[['Trade_Number', 'Entry_Time', 'Exit_Time', 'Side', 'Entry_Price', 
+                    'Exit_Price', 'Position_Size', 'Leverage', 'Quantity', 'PnL', 
+                    'PnL_Pct', 'Fees', 'Hold_Time_Hours', 'Market_Phase']]
+            
+            # 컬럼명 한글로 변경
+            df.columns = ['거래번호', '진입시간', '종료시간', '포지션', '진입가격', 
+                         '청산가격', '포지션크기(%)', '레버리지', '수량', '손익(USDT)', 
+                         '손익률(%)', '수수료', '보유시간(시간)', '시장국면']
+        else:
+            df = pd.DataFrame()
+        
+        # Excel 파일 생성
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            if not df.empty:
+                df.to_excel(writer, sheet_name='매매기록', index=False)
+                
+                # 백테스트 정보 시트 추가
+                backtest_info = pd.DataFrame({
+                    '항목': ['심볼', '전략', '초기자본', '최종가치', '수익률(%)', '최대드로우다운(%)', 
+                            '총거래횟수', '승률(%)', '샤프비율', '생성일시'],
+                    '값': [backtest_result[1], backtest_result[2], backtest_result[3], 
+                          backtest_result[4], backtest_result[5], backtest_result[6],
+                          backtest_result[7], backtest_result[8], backtest_result[9] or 0,
+                          backtest_result[11]]
+                })
+                backtest_info.to_excel(writer, sheet_name='백테스트정보', index=False)
+            else:
+                # 빈 데이터프레임
+                pd.DataFrame({'메시지': ['데이터가 없습니다.']}).to_excel(writer, sheet_name='매매기록', index=False)
+        
+        output.seek(0)
+        
+        # 파일명 설정 (현재 시간 포함)
+        seoul_tz = pytz.timezone('Asia/Seoul')
+        current_time = datetime.now(seoul_tz).strftime('%Y%m%d_%H%M%S')
+        filename = f'백테스트_{backtest_result[1]}_{current_time}.xlsx'
+        
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/system/status')
 def get_system_status():
