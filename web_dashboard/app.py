@@ -551,7 +551,7 @@ def get_system_status():
     
     return jsonify({
         'running': system_running,
-        'timestamp': seoul_time.strftime('%Y.%m.%d %H:%M:%S KST'),
+        'timestamp': seoul_time.strftime('%Y년 %m월 %d일 %H:%M:%S (서울시간)'),
         'prices': web_system.current_prices,
         'database_connected': True
     })

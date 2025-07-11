@@ -1,0 +1,46 @@
+[Unit]
+Description=Crypto Trading System Web Dashboard
+Documentation=https://github.com/TonyStarK-korean/crypto_trading_system
+After=network.target network-online.target
+Wants=network-online.target
+RequiresMountsFor=/home
+
+[Service]
+Type=simple
+User=outerwoolf
+Group=outerwoolf
+WorkingDirectory=/home/outerwoolf/crypto_trading_system/web_dashboard
+Environment=PATH=/home/outerwoolf/crypto_trading_system/web_dashboard/venv/bin
+Environment=PYTHONPATH=/home/outerwoolf/crypto_trading_system/web_dashboard
+Environment=PYTHONUNBUFFERED=1
+Environment=FLASK_APP=app.py
+Environment=FLASK_ENV=production
+ExecStart=/home/outerwoolf/crypto_trading_system/web_dashboard/venv/bin/python app.py
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+Restart=always
+RestartSec=10
+TimeoutStartSec=60
+TimeoutStopSec=30
+
+# 로그 관리
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=crypto-trading
+
+# 보안 설정
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/home/outerwoolf/crypto_trading_system
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+
+# 리소스 제한
+LimitNOFILE=65536
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target
