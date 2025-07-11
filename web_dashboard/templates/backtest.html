@@ -48,18 +48,18 @@
                             <i class="fas fa-info-circle me-2"></i>
                             <strong>주의:</strong> 전체 종목 스캔은 200개 이상의 심볼을 분석하므로 시간이 많이 소요됩니다.
                         </div>
-                        <select class="form-select" id="symbol" required>
-                            <option value="BTC/USDT">BTC/USDT</option>
-                            <option value="ETH/USDT">ETH/USDT</option>
-                            <option value="ADA/USDT">ADA/USDT</option>
-                            <option value="SOL/USDT">SOL/USDT</option>
-                            <option value="DOT/USDT">DOT/USDT</option>
-                            <option value="LINK/USDT">LINK/USDT</option>
-                            <option value="MATIC/USDT">MATIC/USDT</option>
-                            <option value="UNI/USDT">UNI/USDT</option>
-                            <option value="LTC/USDT">LTC/USDT</option>
-                            <option value="XRP/USDT">XRP/USDT</option>
-                        </select>
+                        <div class="input-group">
+                            <select class="form-select" id="symbol" required>
+                                <option value="">심볼을 선택하세요...</option>
+                                <!-- 동적으로 로드될 심볼 목록 -->
+                            </select>
+                            <button type="button" class="btn btn-outline-secondary" onclick="loadBinanceSymbols()">
+                                <i class="fas fa-sync-alt"></i> 새로고침
+                            </button>
+                        </div>
+                        <div class="mt-2">
+                            <input type="text" class="form-control" id="symbolSearch" placeholder="심볼 검색... (예: BTC, ETH, ADA)">
+                        </div>
                     </div>
                     
                     <div class="mb-3">
@@ -556,11 +556,15 @@
         'Scalping': '15m'
     };
     
+    // 전역 변수
+    let allSymbols = [];
+    
     // 페이지 로드 시 초기화
     document.addEventListener('DOMContentLoaded', function() {
         loadBacktestHistory();
         initializeDateInputs();
         setupEventListeners();
+        loadBinanceSymbols(); // 바이낸스 심볼 로드
     });
     
     function initializeDateInputs() {
@@ -598,6 +602,11 @@
                     scanWarning.classList.add('d-none');
                 }
             });
+        });
+        
+        // 심볼 검색 기능
+        document.getElementById('symbolSearch').addEventListener('input', function() {
+            filterSymbols(this.value);
         });
         
         // 백테스트 폼 제출
@@ -1026,6 +1035,85 @@
             showAlert('Excel 다운로드가 시작되었습니다. 브라우저 다운로드 폴더를 확인하세요.', 'success');
         } else {
             showAlert('다운로드할 데이터를 찾을 수 없습니다.', 'danger');
+        }
+    }
+    
+    // 바이낸스 심볼 로드
+    function loadBinanceSymbols() {
+        const symbolSelect = document.getElementById('symbol');
+        const loadingOption = document.createElement('option');
+        loadingOption.value = '';
+        loadingOption.textContent = '심볼 로딩 중...';
+        symbolSelect.innerHTML = '';
+        symbolSelect.appendChild(loadingOption);
+        
+        fetch('/api/binance/symbols')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    allSymbols = data.symbols;
+                    populateSymbolSelect(allSymbols);
+                    showAlert(`${data.count}개의 바이낸스 USDT 심볼을 로드했습니다.`, 'success');
+                } else {
+                    console.error('Error loading symbols:', data.error);
+                    allSymbols = data.symbols; // 기본 심볼 사용
+                    populateSymbolSelect(allSymbols);
+                    showAlert('기본 심볼 목록을 로드했습니다.', 'warning');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading symbols:', error);
+                // 기본 심볼 목록
+                allSymbols = [
+                    'BTC/USDT', 'ETH/USDT', 'BNB/USDT', 'ADA/USDT', 'SOL/USDT',
+                    'XRP/USDT', 'DOT/USDT', 'DOGE/USDT', 'AVAX/USDT', 'SHIB/USDT',
+                    'MATIC/USDT', 'UNI/USDT', 'LINK/USDT', 'LTC/USDT', 'ATOM/USDT'
+                ];
+                populateSymbolSelect(allSymbols);
+                showAlert('오프라인 심볼 목록을 로드했습니다.', 'warning');
+            });
+    }
+    
+    // 심볼 선택 드롭다운 채우기
+    function populateSymbolSelect(symbols) {
+        const symbolSelect = document.getElementById('symbol');
+        symbolSelect.innerHTML = '';
+        
+        // 기본 선택 옵션
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = '심볼을 선택하세요...';
+        symbolSelect.appendChild(defaultOption);
+        
+        // 심볼 목록 추가 (거래량순 정렬)
+        symbols.forEach(symbol => {
+            const option = document.createElement('option');
+            option.value = symbol;
+            option.textContent = symbol;
+            symbolSelect.appendChild(option);
+        });
+        
+        // 기본값으로 BTC/USDT 선택
+        symbolSelect.value = 'BTC/USDT';
+    }
+    
+    // 심볼 검색 필터링
+    function filterSymbols(searchTerm) {
+        if (!searchTerm) {
+            populateSymbolSelect(allSymbols);
+            return;
+        }
+        
+        const filteredSymbols = allSymbols.filter(symbol => 
+            symbol.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        
+        populateSymbolSelect(filteredSymbols);
+        
+        // 검색 결과 표시
+        const symbolSelect = document.getElementById('symbol');
+        if (filteredSymbols.length === 0) {
+            symbolSelect.innerHTML = '<option value="">검색 결과가 없습니다.</option>';
         }
     }
     

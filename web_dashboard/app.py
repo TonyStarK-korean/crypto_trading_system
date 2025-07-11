@@ -522,12 +522,36 @@ def download_trade_details(backtest_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/binance/symbols')
+def get_binance_symbols():
+    """바이낸스 USDT 전체 심볼 목록 API"""
+    try:
+        symbols = get_all_binance_usdt_symbols()
+        return jsonify({
+            'success': True,
+            'symbols': symbols,
+            'count': len(symbols)
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'symbols': [
+                'BTC/USDT', 'ETH/USDT', 'BNB/USDT', 'ADA/USDT', 'SOL/USDT',
+                'XRP/USDT', 'DOT/USDT', 'DOGE/USDT', 'AVAX/USDT', 'SHIB/USDT'
+            ]
+        }), 500
+
 @app.route('/api/system/status')
 def get_system_status():
     """시스템 상태 API"""
+    # 서울 시간대 설정
+    seoul_tz = pytz.timezone('Asia/Seoul')
+    seoul_time = datetime.now(seoul_tz)
+    
     return jsonify({
         'running': system_running,
-        'timestamp': datetime.now().isoformat(),
+        'timestamp': seoul_time.strftime('%Y.%m.%d %H:%M:%S KST'),
         'prices': web_system.current_prices,
         'database_connected': True
     })
